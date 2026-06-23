@@ -1,12 +1,22 @@
 {
-  "id": "com.safelight.image-warp",
-  "name": "Image Warp",
-  "version": "1.0.0",
-  "description": "Liquify-style interactive warp for the Develop module — push, twirl, pucker, bloat, push-left, reconstruct, smooth, and a freeze mask. Applied non-destructively as a RAW-grade, bicubic GPU resample at the scene-linear stage, so it flows through tone mapping, thumbnails, and export.",
-  "author": "Anthony Reimche <anthonyreimche@gmail.com>",
-  "main": "dist/index.js",
-  "categories": ["Develop"],
-  "keywords": ["warp", "liquify", "distort", "mesh", "push", "twirl", "pucker", "bloat", "freeze"],
-  "license": "MIT",
-  "minAppVersion": "2.3.0"
+	"id": "com.safelight.image-warp",
+	"name": "Image Warp",
+	"version": "1.0.1",
+	"description": "Liquify-style interactive warp for the Develop module — push, twirl, pucker, bloat, push-left, reconstruct, smooth, and a freeze mask. Applied non-destructively as a RAW-grade, bicubic GPU resample at the scene-linear stage, so it flows through tone mapping, thumbnails, and export.",
+	"author": "Anthony Reimche <anthonyreimche@gmail.com>",
+	"main": "dist/index.js",
+	"categories": ["Develop"],
+	"keywords": [
+		"warp",
+		"liquify",
+		"distort",
+		"mesh",
+		"push",
+		"twirl",
+		"pucker",
+		"bloat",
+		"freeze"
+	],
+	"license": "MIT",
+	"minAppVersion": "2.3.0"
 }
