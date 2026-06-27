@@ -3,7 +3,7 @@
 	"name": "Image Warp",
 	"version": "1.0.2",
 	"description": "Liquify-style interactive warp for the Develop module — push, twirl, pucker, bloat, push-left, reconstruct, smooth, and a freeze mask. Applied non-destructively as a RAW-grade, bicubic GPU resample at the scene-linear stage, so it flows through tone mapping, thumbnails, and export.",
-	"author": "Anthony Reimche <anthonyreimche@gmail.com>",
+	"author": "Anthony Reimche",
 	"main": "dist/index.js",
 	"categories": ["Develop"],
 	"keywords": [
