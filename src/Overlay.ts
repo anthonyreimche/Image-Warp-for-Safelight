@@ -24,6 +24,17 @@ export function WarpOverlay() {
   const hardness: number = store((s) => s.hardness);
   const previewing: boolean = store((s) => s.previewing);
 
+  // While a pan/zoom gesture key (Ctrl/⌘ or Space) is held, the overlay turns
+  // click-through so the pointer drives the canvas pan/zoom underneath instead of
+  // painting — mirroring the built-in mask/heal overlay (see ViewportImage). The
+  // ref tracks the live value for pointer handlers; the state drives re-render.
+  const [gesture, setGesture] = react.useState(false);
+  const gestureRef = react.useRef(false);
+  const setGestureState = (v: boolean) => {
+    gestureRef.current = v;
+    setGesture(v);
+  };
+
   const dev = api().stores.useDevelopStore;
   const cropping: boolean = dev((s) => s.cropping);
   const activeTool: string = dev((s) => s.activeTool);
@@ -49,11 +60,47 @@ export function WarpOverlay() {
   const visible =
     warpActive && !cropping && activeTool === "none" && !!rect && !!photoId && !!toImage;
 
-  // Hide the native cursor while armed so only our brush ring shows.
+  // Hide the native cursor while armed so only our brush ring shows. Released
+  // while a pan/zoom gesture is held so ViewportImage's zoom/pan cursor surfaces.
   react.useEffect(() => {
-    if (!visible) return;
+    if (!visible || gesture) return;
     const release = api().develop.setCanvasCursor("none", { priority: 20 });
     return release;
+  }, [visible, gesture]);
+
+  // Track the pan/zoom gesture keys while armed. Mirrors ViewportImage: Ctrl/⌘ or
+  // Space held → click-through (canvas pans/zooms); released → back to painting.
+  react.useEffect(() => {
+    if (!visible) {
+      setGestureState(false);
+      return;
+    }
+    const isEditable = (t: EventTarget | null): boolean => {
+      const el = t as HTMLElement | null;
+      if (!el || !el.tagName) return false;
+      const tag = el.tagName;
+      return (
+        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable === true
+      );
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (isEditable(e.target)) return;
+      if (e.code === "Space" || e.ctrlKey || e.metaKey) setGestureState(true);
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space" || !(e.ctrlKey || e.metaKey)) setGestureState(false);
+    };
+    const onBlur = () => setGestureState(false);
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("keyup", onKeyUp, true);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keyup", onKeyUp, true);
+      window.removeEventListener("blur", onBlur);
+      setGestureState(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   // Tear down any in-flight stroke if we become hidden mid-drag.
@@ -123,6 +170,20 @@ export function WarpOverlay() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size, hardness]);
 
+  // Entering pan/zoom mode: abandon any in-flight stroke (committing what's there)
+  // and hide the brush ring so the overlay visibly hands off to the canvas.
+  react.useEffect(() => {
+    if (!gesture) return;
+    if (pressed.current) {
+      pressed.current = false;
+      if (raf.current) cancelAnimationFrame(raf.current);
+      raf.current = 0;
+      if (!field.isEmpty()) void commit("Warp");
+    }
+    updateRing(0, 0, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gesture]);
+
   const localFromEvent = (e: PointerEvent): { lx: number; ly: number } => {
     const root = rootRef.current as HTMLElement | null;
     const r = root ? root.getBoundingClientRect() : { left: 0, top: 0 };
@@ -179,7 +240,7 @@ export function WarpOverlay() {
   };
 
   const onDown = (e: PointerEvent & { currentTarget: HTMLElement }) => {
-    if (!visible) return;
+    if (!visible || gestureRef.current) return;
     const { lx, ly } = localFromEvent(e);
     sampleAt(lx, ly);
     if (!cur.current.inside) return;
@@ -203,7 +264,7 @@ export function WarpOverlay() {
   };
 
   const onMove = (e: PointerEvent) => {
-    if (!visible) return;
+    if (!visible || gestureRef.current) return;
     const { lx, ly } = localFromEvent(e);
     sampleAt(lx, ly);
     updateRing(lx, ly, true);
@@ -239,9 +300,11 @@ export function WarpOverlay() {
       style: {
         position: "absolute",
         inset: 0,
-        pointerEvents: "auto",
+        // Click-through while a pan/zoom gesture key is held so the pointer
+        // reaches the canvas pan/zoom layer underneath instead of painting.
+        pointerEvents: gesture ? "none" : "auto",
         touchAction: "none",
-        cursor: "none",
+        cursor: gesture ? "default" : "none",
         overflow: "hidden",
       },
     },
